@@ -45,7 +45,46 @@ Goal: Learn LangGraph part by part, build code modularly, and keep practical not
 
 ### Session 1 (Today)
 - Created this notebook.
+- Created virtual environment (`venv`).
 - Next: Setup Python env + install LangGraph, then run first tiny graph.
+
+---
+
+## Module 0: Setup and environment check (Windows)
+
+### Step 0.1 Activate venv (PowerShell)
+```powershell
+.\venv\Scripts\Activate.ps1
+```
+
+If activation is blocked, run once in current PowerShell session:
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\venv\Scripts\Activate.ps1
+```
+
+### Step 0.2 Upgrade pip + install packages
+```powershell
+python -m pip install --upgrade pip
+pip install langgraph langchain-core
+```
+
+### Step 0.3 Verify environment
+```powershell
+python modules/module_0_setup/check_env.py
+```
+
+Expected: Python details + `LangGraph: installed`
+
+### Step 0.4 Run first minimal graph (Module 1 preview)
+```powershell
+python modules/module_1_basics/minimal_graph.py
+```
+
+Expected output includes:
+```text
+{'message': 'LangGraph says: hello from module 1 🚀'}
+```
 
 ---
 
@@ -76,4 +115,4 @@ Goal: Learn LangGraph part by part, build code modularly, and keep practical not
 
 ## Next action
 
-When you say **"start module 0"**, we’ll set up environment and run the first minimal example.
+Run Module 0 commands above, then we move to Module 1 deeply (state, nodes, edges) with exercises.
