@@ -4,37 +4,11 @@ from typing import Any, Dict
 from gradient import AsyncGradient
 
 from src.agent.state import AgentState
-from src.tools.traveler_tools import execute_tool
+from src.tools.traveler_tools import execute_tool, get_gradient_tools_schema
 from src.utils.helper import get_required_env_var
 
 MAX_ITERATIONS = 6
 MODEL_NAME = "openai-gpt-oss-120b"
-
-
-TOOLS = [
-	{
-		"type": "function",
-		"function": {
-			"name": "list_actors",
-			"description": "Return a simple mock list of actor names.",
-			"parameters": {
-				"type": "object",
-				"properties": {},
-			},
-		},
-	},
-	{
-		"type": "function",
-		"function": {
-			"name": "list_cities",
-			"description": "Return a simple mock list of city names.",
-			"parameters": {
-				"type": "object",
-				"properties": {},
-			},
-		},
-	},
-]
 
 
 def _build_tool_call(tool_name: str, arguments: Dict[str, Any], call_id: str | None) -> Dict[str, Any]:
@@ -100,7 +74,7 @@ async def llm_reasoning(state: AgentState) -> AgentState:
 		response = await inference_client.chat.completions.create(
 			messages=messages,
 			model=MODEL_NAME,
-			tools=TOOLS,
+			tools=get_gradient_tools_schema(),
 		)
 	except Exception as exc:
 		raise RuntimeError(
@@ -154,6 +128,7 @@ async def tool_execution(state: AgentState) -> AgentState:
 			{
 				"role": "tool",
 				"tool_call_id": tool_call["id"],
+				"name": tool_name,
 				"content": json.dumps(result),
 			}
 		)
@@ -161,8 +136,12 @@ async def tool_execution(state: AgentState) -> AgentState:
 	return {"messages": tool_messages, "iteration_count": state["iteration_count"]}
 
 
-def route_after_llm(state: AgentState) -> str:
+def should_continue(state: AgentState) -> str:
 	last_message = state["messages"][-1]
 	if last_message.get("tool_calls"):
 		return "tool_execution"
 	return "end"
+
+
+def route_after_llm(state: AgentState) -> str:
+	return should_continue(state)
