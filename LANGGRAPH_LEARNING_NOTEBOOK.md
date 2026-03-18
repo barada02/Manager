@@ -41,6 +41,40 @@ Goal: Learn LangGraph part by part, build code modularly, and keep practical not
 
 ---
 
+## Module 1: LangGraph basics (State, Nodes, Edges)
+
+### Learning target
+Understand what each building block does before adding complexity.
+
+### 1) State (data contract)
+- State is a shared dictionary-like object.
+- In Python, we define it with `TypedDict` for clarity.
+- Every node receives current state and returns updated fields.
+
+### 2) Nodes (single responsibility)
+- A node is just a Python function.
+- Keep each node focused on one transformation.
+- Input: state, Output: partial/full state update.
+
+### 3) Edges (flow control)
+- Edges define execution order between nodes.
+- `START` marks where graph execution begins.
+- `END` marks completion.
+
+### Module 1 run file
+- `modules/module_1_basics/minimal_graph.py`
+
+### Module 1 checklist
+- [ ] Read the file and identify State, Node functions, and Edges.
+- [ ] Run it once and inspect output.
+- [ ] Change input message and rerun.
+- [ ] Explain in your own words: why StateGraph is useful.
+
+### Stop rule
+Do not proceed to Module 2 until all checklist items above are clear.
+
+---
+
 ## Session Log
 
 ### Session 1 (Today)
@@ -115,4 +149,4 @@ Expected output includes:
 
 ## Next action
 
-Run Module 0 commands above, then we move to Module 1 deeply (state, nodes, edges) with exercises.
+Install dependencies from `requirements.txt`, then complete Module 1 checklist only.
