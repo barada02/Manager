@@ -1,0 +1,3 @@
+cd ../
+cd../
+python DigitalOcean\ui\server.py
