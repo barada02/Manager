@@ -10,9 +10,15 @@ from src.agent import AgentState, build_agent_app
 @entrypoint
 async def main(input: Dict, context: RequestContext):
     initial_state: AgentState = {
-        "input": input.get("prompt", ""),
-        "output": None,
+        "messages": [
+            {
+                "role": "user",
+                "content": input.get("prompt", ""),
+            }
+        ],
+        "final_answer": None,
+        "iteration_count": 0,
     }
     app = build_agent_app()
     result = await app.ainvoke(initial_state)
-    return result["output"]
+    return result["final_answer"]

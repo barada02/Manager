@@ -1,6 +1,8 @@
-from typing import TypedDict
+import operator
+from typing import Annotated, Any, Dict, List, TypedDict
 
 
 class AgentState(TypedDict):
-	input: str
-	output: str | None
+	messages: Annotated[List[Dict[str, Any]], operator.add]
+	final_answer: str | None
+	iteration_count: int
