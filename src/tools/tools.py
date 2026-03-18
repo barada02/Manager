@@ -7,8 +7,13 @@ This file intentionally contains only tool-related concerns:
 4) Execution and schema helpers
 """
 
+import asyncio
+import json
 from dataclasses import dataclass
 from typing import Any, Awaitable, Callable, Dict, List
+from urllib import error, parse, request
+
+from src.utils.helper import get_required_env_var
 
 # -----------------------------------------------------------------------------
 # Mock data (safe local data for learning/testing)
@@ -39,6 +44,67 @@ async def list_cities() -> Dict[str, Any]:
     return {"cities": CITIES, "count": len(CITIES)}
 
 
+async def ask_external_rag_agent(question: str) -> Dict[str, Any]:
+    """Call an external DO-hosted RAG agent for math-related queries."""
+    try:
+        endpoint = get_required_env_var("EXTERNAL_AGENT_ENDPOINT")
+        access_key = get_required_env_var("EXTERNAL_AGENT_ACCESS_KEY")
+    except RuntimeError as exc:
+        return {
+            "error": "External RAG agent env configuration is missing/invalid.",
+            "details": str(exc),
+        }
+
+    base_url = endpoint.rstrip("/")
+    if base_url.endswith("/api/v1/chat/completions"):
+        url = base_url
+    else:
+        url = parse.urljoin(f"{base_url}/", "api/v1/chat/completions")
+
+    payload = {
+        "messages": [{"role": "user", "content": question}],
+        "stream": False,
+        "include_functions_info": True,
+        "include_retrieval_info": True,
+        "include_guardrails_info": True,
+    }
+
+    body = json.dumps(payload).encode("utf-8")
+    req = request.Request(
+        url=url,
+        data=body,
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {access_key}",
+        },
+        method="POST",
+    )
+
+    def _post() -> Dict[str, Any]:
+        try:
+            with request.urlopen(req, timeout=30) as response:
+                raw = response.read().decode("utf-8")
+                return json.loads(raw)
+        except error.HTTPError as exc:
+            error_text = exc.read().decode("utf-8", errors="replace")
+            return {
+                "error": f"External agent HTTP {exc.code}",
+                "details": error_text,
+            }
+        except error.URLError as exc:
+            return {
+                "error": "External agent request failed",
+                "details": str(exc.reason),
+            }
+        except Exception as exc:
+            return {
+                "error": "External agent unexpected error",
+                "details": str(exc),
+            }
+
+    return await asyncio.to_thread(_post)
+
+
 # -----------------------------------------------------------------------------
 # Adapter handlers (normalized signature for registry)
 # -----------------------------------------------------------------------------
@@ -48,6 +114,16 @@ async def _list_actors_handler(arguments: Dict[str, Any]) -> Dict[str, Any]:
 
 async def _list_cities_handler(arguments: Dict[str, Any]) -> Dict[str, Any]:
     return await list_cities()
+
+
+async def _ask_external_rag_agent_handler(arguments: Dict[str, Any]) -> Dict[str, Any]:
+    question = str(arguments.get("question", "")).strip()
+    if not question:
+        return {
+            "error": "Missing required argument: question",
+            "hint": "Pass {\"question\": \"your question\"}",
+        }
+    return await ask_external_rag_agent(question)
 
 
 # -----------------------------------------------------------------------------
@@ -65,6 +141,21 @@ TOOLS: List[ToolSpec] = [
         description="Return a simple mock list of city names.",
         parameters={"type": "object", "properties": {}},
         handler=_list_cities_handler,
+    ),
+    ToolSpec(
+        name="ask_external_rag_agent",
+        description="Use the hosted external RAG agent for math-related queries and return its full response JSON.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "question": {
+                    "type": "string",
+                    "description": "Math-related user question to send to external RAG agent",
+                }
+            },
+            "required": ["question"],
+        },
+        handler=_ask_external_rag_agent_handler,
     ),
 ]
 
