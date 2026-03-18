@@ -1,38 +1,64 @@
-from typing import TypedDict
+"""
+Simple template agent using the gradient agent runtime with Gradient SDK (serverless inference) and LangGraph.
+"""
 
-from langgraph.graph import END, START, StateGraph
+import os
+from typing import Dict, TypedDict
 
-
-class AppState(TypedDict):
-	message: str
-
-
-def clean_input_node(state: AppState) -> AppState:
-	return {"message": state["message"].strip()}
-
-
-def decorate_message_node(state: AppState) -> AppState:
-	return {"message": f"LangGraph says: {state['message']} 🚀"}
+from gradient import AsyncGradient
+from gradient_adk import entrypoint, RequestContext
+from langgraph.graph import StateGraph
 
 
-def build_graph():
-	graph_builder = StateGraph(AppState)
-	graph_builder.add_node("clean_input", clean_input_node)
-	graph_builder.add_node("decorate_message", decorate_message_node)
+class State(TypedDict):
+    """The state of our graph."""
 
-	graph_builder.add_edge(START, "clean_input")
-	graph_builder.add_edge("clean_input", "decorate_message")
-	graph_builder.add_edge("decorate_message", END)
-
-	return graph_builder.compile()
+    input: str
+    output: str
 
 
-def main() -> None:
-	graph = build_graph()
-	initial_state: AppState = {"message": " hello from module 1 "}
-	result = graph.invoke(initial_state)
-	print(result)
+async def llm_call(state: State) -> State:
+    """Call the LLM"""
+
+    inference_client = AsyncGradient(
+        model_access_key=os.environ.get(
+            "GRADIENT_MODEL_ACCESS_KEY"
+        )
+    )
+
+    # Call the model
+    output = await inference_client.chat.completions.create(
+        messages=[
+            {
+                "role": "user",
+                "content": state["input"],
+            }
+        ],
+        model="openai-gpt-oss-120b",
+    )
+
+    # Set the state
+    state["output"] = output.choices[0].message.content
+    
+    return state
 
 
-if __name__ == "__main__":
-	main()
+@entrypoint
+async def main(input: Dict, context: RequestContext):
+    """Entrypoint"""
+
+    # Setup the graph
+    initial_state = State(
+        input=input.get("prompt"),
+        output=None
+    )
+    graph = StateGraph(State)
+    graph.add_node("llm_call", llm_call)
+    graph.set_entry_point("llm_call")
+    
+    # Attach the graph for instrumentation
+    app = graph.compile()
+    
+    # Invoke the app
+    result = await app.ainvoke(initial_state)
+    return result["output"]
