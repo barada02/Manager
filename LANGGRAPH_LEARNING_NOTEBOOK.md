@@ -62,10 +62,10 @@ Understand what each building block does before adding complexity.
 - `END` marks completion.
 
 ### Module 1 run file
-- `modules/module_1_basics/minimal_graph.py`
+- `main.py`
 
 ### Module 1 checklist
-- [ ] Read the file and identify State, Node functions, and Edges.
+- [ ] Read `main.py` and identify State, Node functions, and Edges.
 - [ ] Run it once and inspect output.
 - [ ] Change input message and rerun.
 - [ ] Explain in your own words: why StateGraph is useful.
@@ -105,14 +105,14 @@ pip install langgraph langchain-core
 
 ### Step 0.3 Verify environment
 ```powershell
-python modules/module_0_setup/check_env.py
+python main.py
 ```
 
-Expected: Python details + `LangGraph: installed`
+Expected: graph output with transformed message.
 
 ### Step 0.4 Run first minimal graph (Module 1 preview)
 ```powershell
-python modules/module_1_basics/minimal_graph.py
+python main.py
 ```
 
 Expected output includes:
