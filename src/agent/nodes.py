@@ -18,7 +18,8 @@ from src.utils.helper import get_required_env_var
 MAX_ITERATIONS = 6
 MODEL_NAME = "openai-gpt-oss-120b"
 SYSTEM_TOOL_HINT = (
-	"You can use tools. Prefer `ask_external_rag_agent` for math-related questions. "
+	"You can use tools. Prefer `"
+    "` for math-related questions. "
 	"Use `list_actors` or `list_cities` for simple list requests."
 )
 
