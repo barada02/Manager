@@ -12,16 +12,23 @@ from gradient import AsyncGradient
 
 from src.agent.state import AgentState
 from src.agent.tool_call_utils import normalize_tool_calls, parse_tool_call
-from src.tools.tools import execute_tool, get_gradient_tools_schema
+from src.tools import execute_tool, get_gradient_tools_schema
 from src.utils.helper import get_required_env_var
 
 MAX_ITERATIONS = 6
 MODEL_NAME = "openai-gpt-oss-120b"
+SYSTEM_TOOL_HINT = (
+	"You can use tools. Prefer `ask_external_rag_agent` for math-related questions. "
+	"Use `list_actors` or `list_cities` for simple list requests."
+)
 
 
 async def llm_reasoning(state: AgentState) -> AgentState:
 	"""Call the model and append either assistant text or assistant tool calls."""
 	messages = state["messages"]
+	llm_messages = messages
+	if not messages or messages[0].get("role") != "system":
+		llm_messages = [{"role": "system", "content": SYSTEM_TOOL_HINT}, *messages]
 	iteration_count = state["iteration_count"] + 1
 
 	if iteration_count > MAX_ITERATIONS:
@@ -41,7 +48,7 @@ async def llm_reasoning(state: AgentState) -> AgentState:
 
 	try:
 		response = await inference_client.chat.completions.create(
-			messages=messages,
+			messages=llm_messages,
 			model=MODEL_NAME,
 			tools=get_gradient_tools_schema(),
 		)
@@ -83,6 +90,7 @@ async def tool_execution(state: AgentState) -> AgentState:
 
 	for tool_call in tool_calls:
 		tool_name, arguments = parse_tool_call(tool_call)
+		print(f"[Tool Execution] selected={tool_name}")
 
 		result = await execute_tool(tool_name, arguments)
 		tool_messages.append(
